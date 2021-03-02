@@ -1,0 +1,17 @@
+argparse
+easydict
+h5py
+matplotlib
+numpy
+pyyaml
+open3d==0.9.0.0
+open3d-python
+opencv-python
+scipy
+tensorboardX>=1.2
+torchvision>=0.4.0
+torch>=1.2.0
+transforms3d
+tqdm
+pillow>=6.2.0
+geomloss==0.2.1

@@ -1,0 +1,10 @@
+*/.DS_Store
+.DS_Store
+.vscode/
+output/
+logs/
+__temp__/
+__pycache__/
+backup/
+build/
+lightning_logs/

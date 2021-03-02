@@ -1,0 +1,52 @@
+DATASET:
+  train_dataset: ShapeNet
+  test_dataset: ShapeNet
+  n_outpoints: 16384
+
+CONST:
+  num_workers: 32
+  n_input_points: 3000
+
+NETWORK:
+  n_sampling_points: 2048 
+  gridding_loss_scales:
+    - 128
+    - 64
+  gridding_loss_alphas:
+    - 0.1
+    - 0.01
+  n_primitives: 32
+  model_type: "SpareNet"
+  metric: "emd"
+  encode: "Residualnet"
+  use_adain: "share"
+  use_selayer: true
+  use_consist_loss: true
+
+RENDER:
+  img_size: 256
+  radius_list: 
+    - 5.0
+    - 7.0
+    - 10.0
+  n_views: 8
+
+GAN:
+  use_im: true
+  use_fm: true
+  use_rgan: false
+  use_cgan: true
+  weight_gan: 0.1
+  weight_l2: 200
+  weight_im: 1
+  weight_fm: 1
+
+TRAIN:
+  learning_rate: 0.0001
+  batch_size: 32
+  n_epochs: 150
+  save_freq: 5
+  log_freq: 1
+
+TEST:
+  metric_name: "EMD"
