@@ -34,7 +34,6 @@ RENDER:
 GAN:
   use_im: true
   use_fm: true
-  use_rgan: false
   use_cgan: true
   weight_gan: 0.1
   weight_l2: 200

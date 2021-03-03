@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation.   
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 # python3.6
@@ -18,6 +18,7 @@ from datasets.data_loaders import data_init
 import utils.misc as um
 import utils.visualizer as uv
 from utils.model_init import generator_init
+
 
 class BaseRunner(object):
     """Defines the base runner class."""
@@ -98,7 +99,9 @@ class BaseRunner(object):
 
     def data_parallel(self):
         """Sets `self.model` as `torch.nn.parallel.DistributedDataParallel`."""
-        self.models = torch.nn.DataParallel(self.models.to(self.gpu_ids[0]), device_ids=self.gpu_ids)
+        self.models = torch.nn.DataParallel(
+            self.models.to(self.gpu_ids[0]), device_ids=self.gpu_ids
+        )
 
     def models_load(self):
         """Load models"""
@@ -106,7 +109,9 @@ class BaseRunner(object):
 
     def models_save(self):
         """Save models"""
-        self.best_metrics = um.checkpoint_save(self.config, self.epoch_idx, self.metrics, self.best_metrics, self.models)
+        self.best_metrics = um.checkpoint_save(
+            self.config, self.epoch_idx, self.metrics, self.best_metrics, self.models
+        )
 
     def build_writer(self):
         """Builds additional controllers besides LRScheduler."""
@@ -127,8 +132,6 @@ class BaseRunner(object):
         raise NotImplementedError("Should be implemented in derived class.")
 
     def save_item_train_info(self):
-        # keep the train loss
-
         n_itr = (self.epoch_idx - 1) * self.n_batches + self.batch_idx
         if self.batch_idx % self.config.TRAIN.log_freq == 0:
             for k, v in self.loss.items():
@@ -167,8 +170,6 @@ class BaseRunner(object):
         raise NotImplementedError("Should be implemented in derived class.")
 
     def save_item_val_info(self, data):
-        # keep the val loss
-
         self.test_metrics.update(self.metrics)
         if self.taxonomy_id not in self.category_metrics:
             self.category_metrics[self.taxonomy_id] = AverageMeter(um.Metrics.names())
@@ -196,7 +197,11 @@ class BaseRunner(object):
 
         for items in enumerate(self.val_loader):
             self.model_idx, (taxonomy_id, _, model_id, data) = items
-            self.taxonomy_id = taxonomy_id[0] if isinstance(taxonomy_id[0], str) else taxonomy_id[0].item()
+            self.taxonomy_id = (
+                taxonomy_id[0]
+                if isinstance(taxonomy_id[0], str)
+                else taxonomy_id[0].item()
+            )
             self.model_id = model_id[0]
             self.n_batches = len(self.val_loader)
             val_start_time = time()
@@ -214,7 +219,9 @@ class BaseRunner(object):
         self.epoch_end_time = time()
 
         for i in range(len(self.losses.items)):
-            self.train_writer.add_scalar("Loss/Epoch/" + self.losses.items[i], self.losses.avg(i), self.epoch_idx)
+            self.train_writer.add_scalar(
+                "Loss/Epoch/" + self.losses.items[i], self.losses.avg(i), self.epoch_idx
+            )
 
         self.logger.info(
             "[Epoch %d/%d] EpochTime = %.3f (s) Losses = %s"
@@ -262,8 +269,16 @@ class BaseRunner(object):
                 )
 
             elif self.config.TEST.mode == "vis":
-                os.makedirs(os.path.join(self.config.DIR.logs, "plots", self.taxonomy_id), exist_ok=True)
-                plot_path = os.path.join(self.config.DIR.logs, "plots", self.taxonomy_id, "%s.png" % self.model_idx)
+                os.makedirs(
+                    os.path.join(self.config.DIR.logs, "plots", self.taxonomy_id),
+                    exist_ok=True,
+                )
+                plot_path = os.path.join(
+                    self.config.DIR.logs,
+                    "plots",
+                    self.taxonomy_id,
+                    "%s.png" % self.model_idx,
+                )
                 print("save image", plot_path)
                 uv.plot_pcd_three_views(
                     plot_path,
@@ -273,12 +288,16 @@ class BaseRunner(object):
                         data["gtcloud"].squeeze().cpu(),
                     ],
                     ["input", "output", "ground truth"],
-                    "CD %.4f  EMD %.4f F-score %.4f" % (self.metrics[1], self.metrics[2], self.metrics[0]),
+                    "CD %.4f  EMD %.4f F-score %.4f"
+                    % (self.metrics[1], self.metrics[2], self.metrics[0]),
                     [5, 0.5, 0.5],
                 )
 
             elif self.config.TEST.mode == "render":
-                os.makedirs(os.path.join(self.config.DIR.logs, "plots", self.taxonomy_id), exist_ok=True)
+                os.makedirs(
+                    os.path.join(self.config.DIR.logs, "plots", self.taxonomy_id),
+                    exist_ok=True,
+                )
                 uv.save_depth_map(
                     cfg=self.config,
                     refine_ptcloud=self.ptcloud,
@@ -288,14 +307,23 @@ class BaseRunner(object):
                 )
 
             elif self.config.TEST.mode == "kitti":
-                output_folder = os.path.join(self.config.DIR.out_path, "benchmark", self.taxonomy_id)
+                output_folder = os.path.join(
+                    self.config.DIR.out_path, "benchmark", self.taxonomy_id
+                )
                 if not os.path.exists(output_folder):
                     os.makedirs(output_folder)
 
                 output_file_path = os.path.join(output_folder, "%s.h5" % self.model_idx)
                 uv.IO.put(output_file_path, self.ptcloud.squeeze().cpu().numpy())
                 self.logger.info(
-                    "Test[%d/%d] Taxonomy = %s Sample = %s File = %s" % (self.model_idx + 1, self.n_batches, self.taxonomy_id, self.model_idx, output_file_path)
+                    "Test[%d/%d] Taxonomy = %s Sample = %s File = %s"
+                    % (
+                        self.model_idx + 1,
+                        self.n_batches,
+                        self.taxonomy_id,
+                        self.model_idx,
+                        output_file_path,
+                    )
                 )
 
     def runner(self):

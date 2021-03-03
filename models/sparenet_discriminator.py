@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation.   
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 import torch
@@ -29,9 +29,13 @@ class PatchDiscriminator(nn.Module):
     def __init__(self, img_shape: tuple = (2, 256, 256)):
         super(PatchDiscriminator, self).__init__()
 
-        def discriminator_block(in_filters: int, out_filters: int, normalization: bool = True):
+        def discriminator_block(
+            in_filters: int, out_filters: int, normalization: bool = True
+        ):
             """Returns downsampling layers of each discriminator block"""
-            layers = [SpectralNorm(nn.Conv2d(in_filters, out_filters, 4, stride=2, padding=1))]
+            layers = [
+                SpectralNorm(nn.Conv2d(in_filters, out_filters, 4, stride=2, padding=1))
+            ]
             if normalization:
                 layers.append(nn.BatchNorm2d(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
@@ -67,7 +71,9 @@ class PatchDiscriminator(nn.Module):
         feat_6 = self.conv6(feat_5)  # [bs, 512, 4, 4]
         validity = self.adv_layer(feat_6)  # [bs, 1, 4, 4]
 
-        validity = F.avg_pool2d(validity, validity.size()[2:]).view(validity.size()[0], -1)
+        validity = F.avg_pool2d(validity, validity.size()[2:]).view(
+            validity.size()[0], -1
+        )
 
         if feat:
             return validity, [feat_1, feat_2, feat_3, feat_4]
@@ -118,11 +124,12 @@ class ProjectionD(nn.Module):
             *discriminator_block(64, feat_num),
         )
 
-        # Output layers
-        ds_size = img_shape[1] // (2 ** 4)  # shape of downsampled image
+        ds_size = img_shape[1] // (2 ** 4) 
         self.adv_layer = utils.spectral_norm(nn.Linear(feat_num * ds_size ** 2, 1))
         if num_classes > 0:
-            self.l_y = utils.spectral_norm(nn.Embedding(num_classes, feat_num * ds_size ** 2))
+            self.l_y = utils.spectral_norm(
+                nn.Embedding(num_classes, feat_num * ds_size ** 2)
+            )
         self._initialize()
 
     def _initialize(self):
@@ -169,7 +176,6 @@ class SpectralNorm(nn.Module):
             v.data = l2normalize(torch.mv(torch.t(w.view(height, -1).data), u.data))
             u.data = l2normalize(torch.mv(w.view(height, -1).data, v.data))
 
-        # sigma = torch.dot(u.data, torch.mv(w.view(height,-1).data, v.data))
         sigma = u.dot(w.view(height, -1).mv(v))
         setattr(self.module, self.name, w / sigma.expand_as(w))
 
@@ -203,4 +209,3 @@ class SpectralNorm(nn.Module):
     def forward(self, *args):
         self._update_u_v()
         return self.module.forward(*args)
-

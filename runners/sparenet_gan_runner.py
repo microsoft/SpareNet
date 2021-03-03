@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation.   
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 import os
@@ -20,8 +20,12 @@ class sparenetGANRunner(BaseRunner):
 
     def __init__(self, config, logger):
         super().__init__(config, logger)
-        self.losses = AverageMeter(["CoarseLoss", "RefineLoss", "errG", "errG_D", "DisRealLoss", "DisFakeLoss"])
-        self.test_losses = AverageMeter(["CoarseLoss", "RefineLoss", "errG", "errG_D", "DisRealLoss", "DisFakeLoss"])
+        self.losses = AverageMeter(
+            ["CoarseLoss", "RefineLoss", "errG", "errG_D", "DisRealLoss", "DisFakeLoss"]
+        )
+        self.test_losses = AverageMeter(
+            ["CoarseLoss", "RefineLoss", "errG", "errG_D", "DisRealLoss", "DisFakeLoss"]
+        )
         self.test_metrics = AverageMeter(um.Metrics.names())
         self.chamfer_dist = None
         self.chamfer_dist_mean = None
@@ -31,18 +35,30 @@ class sparenetGANRunner(BaseRunner):
     def build_models(self):
         super().build_models()
         self.renderer = renderer_init(self.config)
-        self.models_D, self.optimizers_D, self.lr_schedulers_D = discriminator_init(self.config)
+        self.models_D, self.optimizers_D, self.lr_schedulers_D = discriminator_init(
+            self.config
+        )
 
     def data_parallel(self):
         super().data_parallel()
-        self.models_D = torch.nn.DataParallel(self.models_D.to(self.gpu_ids[0]), device_ids=self.gpu_ids)
-        self.renderer = torch.nn.DataParallel(self.renderer.to(self.gpu_ids[0]), device_ids=self.gpu_ids)
+        self.models_D = torch.nn.DataParallel(
+            self.models_D.to(self.gpu_ids[0]), device_ids=self.gpu_ids
+        )
+        self.renderer = torch.nn.DataParallel(
+            self.renderer.to(self.gpu_ids[0]), device_ids=self.gpu_ids
+        )
 
     def build_train_loss(self):
         # Set up loss functions
-        self.chamfer_dist = torch.nn.DataParallel(ChamferDistance().to(self.gpu_ids[0]), device_ids=self.gpu_ids)
-        self.chamfer_dist_mean = torch.nn.DataParallel(ChamferDistanceMean().to(self.gpu_ids[0]), device_ids=self.gpu_ids)
-        self.emd_dist = torch.nn.DataParallel(emd.emdModule().to(self.gpu_ids[0]), device_ids=self.gpu_ids)
+        self.chamfer_dist = torch.nn.DataParallel(
+            ChamferDistance().to(self.gpu_ids[0]), device_ids=self.gpu_ids
+        )
+        self.chamfer_dist_mean = torch.nn.DataParallel(
+            ChamferDistanceMean().to(self.gpu_ids[0]), device_ids=self.gpu_ids
+        )
+        self.emd_dist = torch.nn.DataParallel(
+            emd.emdModule().to(self.gpu_ids[0]), device_ids=self.gpu_ids
+        )
 
     def build_val_loss(self):
         # Set up loss functions
@@ -60,16 +76,27 @@ class sparenetGANRunner(BaseRunner):
 
         # create GAN positive & negative labels
         _batch_size = data["partial_cloud"].size()[0]
-        self.real_label = torch.FloatTensor(_batch_size).resize_([_batch_size, 1]).data.fill_(1).to(self.gpu_ids[0])
-        self.fake_label = torch.FloatTensor(_batch_size).resize_([_batch_size, 1]).data.fill_(0).to(self.gpu_ids[0])
+        self.real_label = (
+            torch.FloatTensor(_batch_size)
+            .resize_([_batch_size, 1])
+            .data.fill_(1)
+            .to(self.gpu_ids[0])
+        )
+        self.fake_label = (
+            torch.FloatTensor(_batch_size)
+            .resize_([_batch_size, 1])
+            .data.fill_(0)
+            .to(self.gpu_ids[0])
+        )
 
         # run the completion network
         _loss, _, middle_ptcloud, _, refine_loss, coarse_loss = self.completion(data)
-        rec_loss = _loss  # it is the sum of coarse loss, refined loss, (meddle loss, expansion penalty loss, and consistent loss)
+        rec_loss = _loss
         rendered_ptcloud = middle_ptcloud
 
-        # Point rendering and image gan
-        errD_real, errD_fake = self.discriminator_backward(data, labels, rendered_ptcloud)
+        errD_real, errD_fake = self.discriminator_backward(
+            data, labels, rendered_ptcloud
+        )
         errG, errG_D = self.generator_backward(data, labels, rec_loss)
 
         self.loss["coarse_loss"] = coarse_loss * 1000
@@ -80,22 +107,27 @@ class sparenetGANRunner(BaseRunner):
         self.loss["errD_real"] = errD_real
         self.loss["errD_fake"] = errD_fake
 
-        self.losses.update([coarse_loss.item() * 1000, refine_loss.item() * 1000, errG.item(), errG_D.item(), errD_real.item(), errD_fake.item()])
-    
+        self.losses.update(
+            [
+                coarse_loss.item() * 1000,
+                refine_loss.item() * 1000,
+                errG.item(),
+                errG_D.item(),
+                errD_real.item(),
+                errD_fake.item(),
+            ]
+        )
+
     def val_step(self, items):
-
         _, (_, _, _, data) = items
-
-        # prepare the data and label
         for k, v in data.items():
             data[k] = um.var_or_cuda(v)
 
-        # run the completion network
         _loss, refine_ptcloud, _, _, refine_loss, coarse_loss = self.completion(data)
         self.test_losses.update([coarse_loss.item() * 1000, refine_loss.item() * 1000])
         self.metrics = um.Metrics.get(refine_ptcloud, data["gtcloud"])
         self.ptcloud = refine_ptcloud
-        
+
     def completion(self, data):
         """
         inputs:
@@ -112,19 +144,28 @@ class sparenetGANRunner(BaseRunner):
             refine_loss: float32
             coarse_loss: float32
         """
-        # there is the middle pcd between coarse pcd and refined pcd
-        (coarse_ptcloud, middle_ptcloud, refine_ptcloud, expansion_penalty) = self.models(data)
+        (
+            coarse_ptcloud,
+            middle_ptcloud,
+            refine_ptcloud,
+            expansion_penalty,
+        ) = self.models(data)
 
-        # here we can choose the way to compute the loss
         if self.config.NETWORK.metric == "chamfer":
             coarse_loss = self.chamfer_dist_mean(coarse_ptcloud, data["gtcloud"]).mean()
             middle_loss = self.chamfer_dist_mean(middle_ptcloud, data["gtcloud"]).mean()
             refine_loss = self.chamfer_dist_mean(refine_ptcloud, data["gtcloud"]).mean()
 
         elif self.config.NETWORK.metric == "emd":
-            emd_coarse, _ = self.emd_dist(coarse_ptcloud, data["gtcloud"], eps=0.005, iters=50)
-            emd_middle, _ = self.emd_dist(middle_ptcloud, data["gtcloud"], eps=0.005, iters=50)
-            emd_refine, _ = self.emd_dist(refine_ptcloud, data["gtcloud"], eps=0.005, iters=50)
+            emd_coarse, _ = self.emd_dist(
+                coarse_ptcloud, data["gtcloud"], eps=0.005, iters=50
+            )
+            emd_middle, _ = self.emd_dist(
+                middle_ptcloud, data["gtcloud"], eps=0.005, iters=50
+            )
+            emd_refine, _ = self.emd_dist(
+                refine_ptcloud, data["gtcloud"], eps=0.005, iters=50
+            )
             coarse_loss = torch.sqrt(emd_coarse).mean(1).mean()
             refine_loss = torch.sqrt(emd_refine).mean(1).mean()
             middle_loss = torch.sqrt(emd_middle).mean(1).mean()
@@ -132,16 +173,21 @@ class sparenetGANRunner(BaseRunner):
         else:
             raise Exception("unknown training metric")
 
-        # loss is the sum of coarse loss, meddle loss, refined loss and expansion penalty loss,(and consistent loss)
         _loss = coarse_loss + middle_loss + refine_loss + expansion_penalty.mean() * 0.1
 
         if self.config.NETWORK.use_consist_loss:
-            # BUG: no EMD?
             dist1, _ = self.chamfer_dist(refine_ptcloud, data["gtcloud"])
             cd_input2fine = torch.mean(dist1).mean()
             _loss += cd_input2fine * 0.5
 
-        return _loss, refine_ptcloud, middle_ptcloud, coarse_ptcloud, refine_loss, coarse_loss
+        return (
+            _loss,
+            refine_ptcloud,
+            middle_ptcloud,
+            coarse_ptcloud,
+            refine_loss,
+            coarse_loss,
+        )
 
     def discriminator_backward(self, data, labels, rendered_ptcloud):
         """
@@ -163,55 +209,60 @@ class sparenetGANRunner(BaseRunner):
         real_render_imgs_dict = {}
         gen_render_imgs_dict = {}
         input_render_imgs_dict = {}
-        # scaler = GradScaler() if cfg.mix else None
-        # Randomly select N_VIEWS from 8 views -->reduce computation memory;
-        # TODO: random views beyond predefined views
         random_radius = random.sample(self.config.RENDER.radius_list, 1)[0]
-        # random_view_ids = random.sample(list(range(0, N_VIEWS_PREDEFINED, 1)), cfg.RENDER.N_VIEWS)
         random_view_ids = list(range(0, N_VIEWS_PREDEFINED, 1))
 
-        # Point rendering
         for _view_id in random_view_ids:
             # get real_imgs, gen_imgs and input_render_imgs
             real_render_imgs_dict[_view_id] = self.renderer(
                 data["gtcloud"], view_id=_view_id, radius_list=[random_radius]
-            )  # [bs, len(radius_list), 256, 256], now only use 1 random_radius
-            gen_render_imgs_dict[_view_id] = self.renderer(rendered_ptcloud, view_id=_view_id, radius_list=[random_radius])
-            input_render_imgs_dict[_view_id] = self.renderer(data["partial_cloud"], view_id=_view_id, radius_list=[random_radius])
+            )
+            gen_render_imgs_dict[_view_id] = self.renderer(
+                rendered_ptcloud, view_id=_view_id, radius_list=[random_radius]
+            )
+            input_render_imgs_dict[_view_id] = self.renderer(
+                data["partial_cloud"], view_id=_view_id, radius_list=[random_radius]
+            )
 
-        # Concat rendered image of different views
         _view_id = random_view_ids[0]
         self.real_imgs = real_render_imgs_dict[_view_id]
         self.fake_imgs = gen_render_imgs_dict[_view_id]
         self.input_imgs = input_render_imgs_dict[_view_id]
         for _index in range(1, len(random_view_ids)):
             _view_id = random_view_ids[_index]
-            self.real_imgs = torch.cat((self.real_imgs, real_render_imgs_dict[_view_id]), dim=1)
-            self.fake_imgs = torch.cat((self.fake_imgs, gen_render_imgs_dict[_view_id]), dim=1)
-            self.input_imgs = torch.cat((self.input_imgs, input_render_imgs_dict[_view_id]), dim=1)
+            self.real_imgs = torch.cat(
+                (self.real_imgs, real_render_imgs_dict[_view_id]), dim=1
+            )
+            self.fake_imgs = torch.cat(
+                (self.fake_imgs, gen_render_imgs_dict[_view_id]), dim=1
+            )
+            self.input_imgs = torch.cat(
+                (self.input_imgs, input_render_imgs_dict[_view_id]), dim=1
+            )
 
         errD_real = 0.0
         errD_fake = 0.0
 
         if self.config.GAN.use_cgan:
-            D_real_pred = self.models_D(torch.cat((self.input_imgs, self.real_imgs), dim=1).detach(), y=labels)
-            D_fake_pred = self.models_D(torch.cat((self.input_imgs, self.fake_imgs), dim=1).detach(), y=labels)
+            D_real_pred = self.models_D(
+                torch.cat((self.input_imgs, self.real_imgs), dim=1).detach(), y=labels
+            )
+            D_fake_pred = self.models_D(
+                torch.cat((self.input_imgs, self.fake_imgs), dim=1).detach(), y=labels
+            )
         else:
-            D_real_pred = self.models_D(torch.cat((self.input_imgs, self.real_imgs), dim=1).detach())
-            D_fake_pred = self.models_D(torch.cat((self.input_imgs, self.fake_imgs), dim=1).detach())
+            D_real_pred = self.models_D(
+                torch.cat((self.input_imgs, self.real_imgs), dim=1).detach()
+            )
+            D_fake_pred = self.models_D(
+                torch.cat((self.input_imgs, self.fake_imgs), dim=1).detach()
+            )
 
-        if self.config.GAN.use_rgan:  # use rGAN to introduce prior probability
-            errD_real += torch.mean((D_real_pred - torch.mean(D_fake_pred) - self.real_label) ** 2) / 2.0
-            errD_fake += torch.mean((D_fake_pred - torch.mean(D_real_pred) + self.real_label) ** 2) / 2.0
-        else:
-            errD_real += self.criterionD(D_real_pred, self.real_label)
-            errD_fake += self.criterionD(D_fake_pred, self.fake_label)
-
+        errD_real += self.criterionD(D_real_pred, self.real_label)
+        errD_fake += self.criterionD(D_fake_pred, self.fake_label)
         errD = errD_real + errD_fake
-
         errD.backward()
         self.optimizers_D.step()
-
         return errD_real, errD_fake
 
     def generator_backward(self, data, labels, rec_loss):
@@ -238,49 +289,58 @@ class sparenetGANRunner(BaseRunner):
 
         if self.config.GAN.use_fm:  # get feature matching
             if self.config.GAN.use_cgan:
-                D_fake_pred, D_fake_features = self.models_D(torch.cat((self.input_imgs, self.fake_imgs), dim=1), feat=True, y=labels)
-                _, D_real_features = self.models_D(torch.cat((self.input_imgs, self.real_imgs), dim=1), feat=True, y=labels)
+                D_fake_pred, D_fake_features = self.models_D(
+                    torch.cat((self.input_imgs, self.fake_imgs), dim=1),
+                    feat=True,
+                    y=labels,
+                )
+                _, D_real_features = self.models_D(
+                    torch.cat((self.input_imgs, self.real_imgs), dim=1),
+                    feat=True,
+                    y=labels,
+                )
 
             else:
                 # Calculate output of image discriminator (PatchGAN)
-                D_fake_pred, D_fake_features = self.models_D(torch.cat((self.input_imgs, self.fake_imgs), dim=1), feat=True)
-                _, D_real_features = self.models_D(torch.cat((self.input_imgs, self.real_imgs), dim=1), feat=True)
+                D_fake_pred, D_fake_features = self.models_D(
+                    torch.cat((self.input_imgs, self.fake_imgs), dim=1), feat=True
+                )
+                _, D_real_features = self.models_D(
+                    torch.cat((self.input_imgs, self.real_imgs), dim=1), feat=True
+                )
 
             # Feature match loss is weighted by number of feature maps
             map_nums = [feat.shape[1] for feat in D_fake_features]
             feat_weights = [float(i) / sum(map_nums) for i in map_nums]
-            for j in range(len(D_fake_features)):  # the final loss is the sum of all features
-                loss_fm += feat_weights[j] * torch.mean((D_fake_features[j] - D_real_features[j].detach()) ** 2)
+            for j in range(
+                len(D_fake_features)
+            ):  # the final loss is the sum of all features
+                loss_fm += feat_weights[j] * torch.mean(
+                    (D_fake_features[j] - D_real_features[j].detach()) ** 2
+                )
         else:
             if self.config.GAN.use_cgan:
-                D_fake_pred = self.models_D(torch.cat((self.input_imgs, self.fake_imgs), dim=1), y=labels)
+                D_fake_pred = self.models_D(
+                    torch.cat((self.input_imgs, self.fake_imgs), dim=1), y=labels
+                )
             else:
                 # Calculate output of image discriminator (PatchGAN)
-                D_fake_pred = self.models_D(torch.cat((self.input_imgs, self.fake_imgs), dim=1))
-
-        if self.config.GAN.use_rgan:  # Relativistic GAN, here we can get GAN_loss
-            if self.config.GAN.use_cgan:
-                D_real_pred = self.models_D(torch.cat((self.input_imgs, self.real_imgs), dim=1), y=labels)
-            else:
-                D_real_pred = self.models_D(torch.cat((self.input_imgs, self.real_imgs), dim=1))
-
-            errG_D += (
-                torch.mean((D_real_pred - torch.mean(D_fake_pred) + self.real_label) ** 2)
-                + torch.mean((D_fake_pred - torch.mean(D_real_pred) - self.real_label) ** 2)
-            ) / 2
-        else:  # Standard GAN
-            errG_D += self.criterionD(D_fake_pred, self.real_label)
+                D_fake_pred = self.models_D(
+                    torch.cat((self.input_imgs, self.fake_imgs), dim=1)
+                )
+        errG_D += self.criterionD(D_fake_pred, self.real_label)
 
         if self.config.GAN.use_im:  # Get image matching (L1_loss)
             loss_im += torch.nn.L1Loss()(self.fake_imgs, self.real_imgs.detach())
 
-        errG = self.config.GAN.weight_l2 * rec_loss + self.config.GAN.weight_gan * errG_D
+        errG = (
+            self.config.GAN.weight_l2 * rec_loss + self.config.GAN.weight_gan * errG_D
+        )
         # the sum of recloss and GAN_loss (and feature matching and image matching)
         if self.config.GAN.use_fm:
             errG += self.config.GAN.weight_fm * loss_fm
         if self.config.GAN.use_im:
             errG += self.config.GAN.weight_im * loss_im
-
         errG.backward()
         self.optimizers.step()
 

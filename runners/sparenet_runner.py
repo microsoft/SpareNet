@@ -40,13 +40,10 @@ class sparenetRunner(BaseRunner):
         self.emd_dist = emd.emdModule().cuda()
 
     def train_step(self, items):
-
-        # prepare the data and label
         _, (_, _, _, data) = items
         for k, v in data.items():
             data[k] = v.float().to(self.gpu_ids[0])
 
-        # run the completion network
         _loss, _, _, _, refine_loss, coarse_loss = self.completion(data)
         self.models.zero_grad()
         _loss.backward()
@@ -58,14 +55,10 @@ class sparenetRunner(BaseRunner):
         self.losses.update([coarse_loss * 1000, refine_loss * 1000])
 
     def val_step(self, items):
-
         _, (_, _, _, data) = items
-
-        # prepare the data and label
         for k, v in data.items():
             data[k] = um.var_or_cuda(v)
 
-        # run the completion network
         _, refine_ptcloud, _, _, refine_loss, coarse_loss = self.completion(data)
         self.test_losses.update([coarse_loss.item() * 1000, refine_loss.item() * 1000])
         self.metrics = um.Metrics.get(refine_ptcloud, data["gtcloud"])
@@ -87,10 +80,8 @@ class sparenetRunner(BaseRunner):
             refine_loss: float32
             coarse_loss: float32
         """
-        # there is the middle pcd between coarse pcd and refined pcd
         (coarse_ptcloud, middle_ptcloud, refine_ptcloud, expansion_penalty) = self.models(data)
 
-        # here we can choose the way to compute the loss
         if self.config.NETWORK.metric == "chamfer":
             coarse_loss = self.chamfer_dist_mean(coarse_ptcloud, data["gtcloud"]).mean()
             middle_loss = self.chamfer_dist_mean(middle_ptcloud, data["gtcloud"]).mean()
@@ -107,11 +98,9 @@ class sparenetRunner(BaseRunner):
         else:
             raise Exception("unknown training metric")
 
-        # loss is the sum of coarse loss, meddle loss, refined loss and expansion penalty loss,(and consistent loss)
         _loss = coarse_loss + middle_loss + refine_loss + expansion_penalty.mean() * 0.1
 
         if self.config.NETWORK.use_consist_loss:
-            # BUG: no EMD?
             dist1, _ = self.chamfer_dist(refine_ptcloud, data["gtcloud"])
             cd_input2fine = torch.mean(dist1).mean()
             _loss += cd_input2fine * 0.5

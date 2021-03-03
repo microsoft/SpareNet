@@ -161,7 +161,6 @@ def init_weights(m):
 
 def init_weights_D(m):
     classname = m.__class__.__name__
-    # BUG: can't be used for spectral norm
     if (
         classname.find("Conv2d") != -1
         and hasattr(m, "weight")

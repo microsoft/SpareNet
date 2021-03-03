@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation.   
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 import json
@@ -54,7 +54,8 @@ def data_init(cfg):
             shuffle=False,
         )
     if cfg.GAN.use_cgan:
-        cfg.DATASET.num_classes = len(train_dataset_loader.dataset_categories)  # will be used in define_G function and creating discriminator
+        # will be used in define_G function and creating discriminator
+        cfg.DATASET.num_classes = len(train_dataset_loader.dataset_categories)
         if cfg.DATASET.train_dataset == "Completion3D":
             cfg.DATASET.num_classes -= 1
         logger.debug("update config NUM_CLASSES: %d." % cfg.DATASET.num_classes)
@@ -104,7 +105,11 @@ class Dataset(torch.utils.data.dataset.Dataset):
         data = {}
         rand_idx = -1
         if "n_renderings" in self.options:
-            rand_idx = random.randint(0, self.options["n_renderings"] - 1) if self.options["shuffle"] else 0
+            rand_idx = (
+                random.randint(0, self.options["n_renderings"] - 1)
+                if self.options["shuffle"]
+                else 0
+            )
 
         for ri in self.options["required_items"]:
             file_path = sample["%s_path" % ri]
@@ -129,11 +134,20 @@ class ShapeNetDataLoader(object):
             self.dataset_categories = json.loads(f.read())
 
     def get_dataset(self, subset):
-        n_renderings = self.cfg.DATASETS.shapenet.n_renderings if subset == DatasetSubset.TRAIN else 1
-        file_list = self._get_file_list(self.cfg, self._get_subset(subset), n_renderings)
+        n_renderings = (
+            self.cfg.DATASETS.shapenet.n_renderings
+            if subset == DatasetSubset.TRAIN
+            else 1
+        )
+        file_list = self._get_file_list(
+            self.cfg, self._get_subset(subset), n_renderings
+        )
         transforms = self._get_transforms(self.cfg, subset)
         return Dataset(
-            {"required_items": ["partial_cloud", "gtcloud"], "shuffle": subset == DatasetSubset.TRAIN},
+            {
+                "required_items": ["partial_cloud", "gtcloud"],
+                "shuffle": subset == DatasetSubset.TRAIN,
+            },
             file_list,
             transforms,
         )
@@ -152,7 +166,10 @@ class ShapeNetDataLoader(object):
                         "parameters": {"n_points": cfg.DATASET.n_outpoints},
                         "objects": ["gtcloud"],
                     },
-                    {"callback": "RandomMirrorPoints", "objects": ["partial_cloud", "gtcloud"]},
+                    {
+                        "callback": "RandomMirrorPoints",
+                        "objects": ["partial_cloud", "gtcloud"],
+                    },
                     {"callback": "ToTensor", "objects": ["partial_cloud", "gtcloud"]},
                 ]
             )
@@ -185,7 +202,10 @@ class ShapeNetDataLoader(object):
         """Prepare file list for the dataset"""
         file_list = []
         for label, dc in enumerate(self.dataset_categories):
-            logger.info("Collecting files of Taxonomy [ID=%s, Name=%s]" % (dc["taxonomy_id"], dc["taxonomy_name"]))
+            logger.info(
+                "Collecting files of Taxonomy [ID=%s, Name=%s]"
+                % (dc["taxonomy_id"], dc["taxonomy_name"])
+            )
             samples = dc[subset]
 
             for s in tqdm(samples, leave=False):
@@ -198,8 +218,13 @@ class ShapeNetDataLoader(object):
                             "taxonomy_id": dc["taxonomy_id"],
                             "label": label,
                             "model_id": s,
-                            "partial_cloud_path": [cfg.DATASETS.shapenet.partial_points_path % (subset, dc["taxonomy_id"], s, i) for i in range(n_renderings)],
-                            "gtcloud_path": cfg.DATASETS.shapenet.complete_points_path % (subset, dc["taxonomy_id"], s),
+                            "partial_cloud_path": [
+                                cfg.DATASETS.shapenet.partial_points_path
+                                % (subset, dc["taxonomy_id"], s, i)
+                                for i in range(n_renderings)
+                            ],
+                            "gtcloud_path": cfg.DATASETS.shapenet.complete_points_path
+                            % (subset, dc["taxonomy_id"], s),
                         }
                     )
 
@@ -212,12 +237,16 @@ class ShapeNetDataLoader(object):
                                 "taxonomy_id": dc["taxonomy_id"],
                                 "label": label,
                                 "model_id": s + str(i),
-                                "partial_cloud_path": cfg.DATASETS.shapenet.partial_points_path % (subset, dc["taxonomy_id"], s, i),
-                                "gtcloud_path": cfg.DATASETS.shapenet.complete_points_path % (subset, dc["taxonomy_id"], s),
+                                "partial_cloud_path": cfg.DATASETS.shapenet.partial_points_path
+                                % (subset, dc["taxonomy_id"], s, i),
+                                "gtcloud_path": cfg.DATASETS.shapenet.complete_points_path
+                                % (subset, dc["taxonomy_id"], s),
                             }
                         )
 
-        logger.info("Complete collecting files of the dataset. Total files: %d" % len(file_list))
+        logger.info(
+            "Complete collecting files of the dataset. Total files: %d" % len(file_list)
+        )
         return file_list
 
 
@@ -226,7 +255,9 @@ class ShapeNetCarsDataLoader(ShapeNetDataLoader):
         super(ShapeNetCarsDataLoader, self).__init__(cfg)
 
         # Remove other categories except cars
-        self.dataset_categories = [dc for dc in self.dataset_categories if dc["taxonomy_id"] == "02958343"]
+        self.dataset_categories = [
+            dc for dc in self.dataset_categories if dc["taxonomy_id"] == "02958343"
+        ]
 
 
 class Completion3DDataLoader(object):
@@ -241,10 +272,17 @@ class Completion3DDataLoader(object):
     def get_dataset(self, subset):
         file_list = self._get_file_list(self.cfg, self._get_subset(subset))
         transforms = self._get_transforms(self.cfg, subset)
-        required_items = ["partial_cloud"] if subset == DatasetSubset.TEST else ["partial_cloud", "gtcloud"]
+        required_items = (
+            ["partial_cloud"]
+            if subset == DatasetSubset.TEST
+            else ["partial_cloud", "gtcloud"]
+        )
 
         return Dataset(
-            {"required_items": required_items, "shuffle": subset == DatasetSubset.TRAIN},
+            {
+                "required_items": required_items,
+                "shuffle": subset == DatasetSubset.TRAIN,
+            },
             file_list,
             transforms,
         )
@@ -258,7 +296,10 @@ class Completion3DDataLoader(object):
                         "parameters": {"n_points": cfg.CONST.n_input_points},
                         "objects": ["partial_cloud"],
                     },
-                    {"callback": "RandomMirrorPoints", "objects": ["partial_cloud", "gtcloud"]},
+                    {
+                        "callback": "RandomMirrorPoints",
+                        "objects": ["partial_cloud", "gtcloud"],
+                    },
                     {"callback": "ToTensor", "objects": ["partial_cloud", "gtcloud"]},
                 ]
             )
@@ -287,7 +328,10 @@ class Completion3DDataLoader(object):
         file_list = []
         label = 0
         for dc in self.dataset_categories:
-            logger.info("Collecting files of Taxonomy [ID=%s, Name=%s]" % (dc["taxonomy_id"], dc["taxonomy_name"]))
+            logger.info(
+                "Collecting files of Taxonomy [ID=%s, Name=%s]"
+                % (dc["taxonomy_id"], dc["taxonomy_name"])
+            )
             samples = dc[subset]
 
             for s in tqdm(samples, leave=False):
@@ -296,14 +340,18 @@ class Completion3DDataLoader(object):
                         "taxonomy_id": dc["taxonomy_id"],
                         "label": label,
                         "model_id": s,
-                        "partial_cloud_path": cfg.DATASETS.completion3d.partial_points_path % (subset, dc["taxonomy_id"], s),
-                        "gtcloud_path": cfg.DATASETS.completion3d.complete_points_path % (subset, dc["taxonomy_id"], s),
+                        "partial_cloud_path": cfg.DATASETS.completion3d.partial_points_path
+                        % (subset, dc["taxonomy_id"], s),
+                        "gtcloud_path": cfg.DATASETS.completion3d.complete_points_path
+                        % (subset, dc["taxonomy_id"], s),
                     }
                 )
             if dc["taxonomy_id"] != "all":
                 label += 1
 
-        logger.info("Complete collecting files of the dataset. Total files: %d" % len(file_list))
+        logger.info(
+            "Complete collecting files of the dataset. Total files: %d" % len(file_list)
+        )
         return file_list
 
 
@@ -321,14 +369,21 @@ class KittiDataLoader(object):
         transforms = self._get_transforms(self.cfg, subset)
         required_items = ["partial_cloud", "bounding_box"]
 
-        return Dataset({"required_items": required_items, "shuffle": False}, file_list, transforms)
+        return Dataset(
+            {"required_items": required_items, "shuffle": False}, file_list, transforms
+        )
 
     def _get_transforms(self, cfg, subset):
         return datasets.data_transforms.Compose(
             [
                 {
                     "callback": "NormalizeObjectPose",
-                    "parameters": {"input_keys": {"ptcloud": "partial_cloud", "bbox": "bounding_box"}},
+                    "parameters": {
+                        "input_keys": {
+                            "ptcloud": "partial_cloud",
+                            "bbox": "bounding_box",
+                        }
+                    },
                     "objects": ["partial_cloud", "bounding_box"],
                 },
                 {
@@ -353,7 +408,10 @@ class KittiDataLoader(object):
         file_list = []
         label = 0
         for dc in self.dataset_categories:
-            logger.info("Collecting files of Taxonomy [ID=%s, Name=%s]" % (dc["taxonomy_id"], dc["taxonomy_name"]))
+            logger.info(
+                "Collecting files of Taxonomy [ID=%s, Name=%s]"
+                % (dc["taxonomy_id"], dc["taxonomy_name"])
+            )
             samples = dc[subset]
 
             for s in tqdm(samples, leave=False):
@@ -362,12 +420,16 @@ class KittiDataLoader(object):
                         "taxonomy_id": dc["taxonomy_id"],
                         "label": label,
                         "model_id": s,
-                        "partial_cloud_path": cfg.DATASETS.kitti.partial_points_path % s,
-                        "bounding_box_path": cfg.DATASETS.kitti.bounding_box_file_path % s,
+                        "partial_cloud_path": cfg.DATASETS.kitti.partial_points_path
+                        % s,
+                        "bounding_box_path": cfg.DATASETS.kitti.bounding_box_file_path
+                        % s,
                     }
                 )
 
-        logger.info("Complete collecting files of the dataset. Total files: %d" % len(file_list))
+        logger.info(
+            "Complete collecting files of the dataset. Total files: %d" % len(file_list)
+        )
         return file_list
 
 

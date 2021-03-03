@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation.   
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 import torch
@@ -91,13 +91,23 @@ class SpareNetEncode(nn.Module):
     - feture:  one x feature_size
     """
 
-    def __init__(self, bottleneck_size=4096, use_SElayer=False, encode="Pointfeat", hide_size=4096):
+    def __init__(
+        self,
+        bottleneck_size=4096,
+        use_SElayer=False,
+        encode="Pointfeat",
+        hide_size=4096,
+    ):
         super(SpareNetEncode, self).__init__()
         print(encode)
         if encode == "Residualnet":
-            self.feat_extractor = EdgeConvResFeat(use_SElayer=use_SElayer, k=8, output_size=hide_size, hide_size=4096)
+            self.feat_extractor = EdgeConvResFeat(
+                use_SElayer=use_SElayer, k=8, output_size=hide_size, hide_size=4096
+            )
         else:
-            self.feat_extractor = PointNetfeat(global_feat=True, use_SElayer=use_SElayer, hide_size=hide_size)
+            self.feat_extractor = PointNetfeat(
+                global_feat=True, use_SElayer=use_SElayer, hide_size=hide_size
+            )
         self.linear = nn.Linear(hide_size, bottleneck_size)
         self.bn = nn.BatchNorm1d(bottleneck_size)
         self.relu = nn.ReLU()
@@ -134,10 +144,18 @@ class EdgeConvResFeat(nn.Module):
         self.output_size = output_size
 
         self.conv1 = nn.Conv2d(6, self.hide_size // 16, kernel_size=1, bias=False)
-        self.conv2 = nn.Conv2d(self.hide_size // 8, self.hide_size // 16, kernel_size=1, bias=False)
-        self.conv3 = nn.Conv2d(self.hide_size // 8, self.hide_size // 8, kernel_size=1, bias=False)
-        self.conv4 = nn.Conv2d(self.hide_size // 4, self.hide_size // 4, kernel_size=1, bias=False)
-        self.conv5 = nn.Conv1d(self.hide_size // 2, self.output_size // 2, kernel_size=1, bias=False)
+        self.conv2 = nn.Conv2d(
+            self.hide_size // 8, self.hide_size // 16, kernel_size=1, bias=False
+        )
+        self.conv3 = nn.Conv2d(
+            self.hide_size // 8, self.hide_size // 8, kernel_size=1, bias=False
+        )
+        self.conv4 = nn.Conv2d(
+            self.hide_size // 4, self.hide_size // 4, kernel_size=1, bias=False
+        )
+        self.conv5 = nn.Conv1d(
+            self.hide_size // 2, self.output_size // 2, kernel_size=1, bias=False
+        )
 
         self.relu1 = nn.LeakyReLU(negative_slope=0.2)
         self.relu2 = nn.LeakyReLU(negative_slope=0.2)
@@ -157,59 +175,64 @@ class EdgeConvResFeat(nn.Module):
         self.bn4 = nn.BatchNorm2d(self.hide_size // 4)
         self.bn5 = nn.BatchNorm1d(self.output_size // 2)
 
-        self.resconv1 = nn.Conv1d(self.hide_size // 16, self.hide_size // 16, kernel_size=1, bias=False)
-        self.resconv2 = nn.Conv1d(self.hide_size // 16, self.hide_size // 8, kernel_size=1, bias=False)
-        self.resconv3 = nn.Conv1d(self.hide_size // 8, self.hide_size // 4, kernel_size=1, bias=False)
+        self.resconv1 = nn.Conv1d(
+            self.hide_size // 16, self.hide_size // 16, kernel_size=1, bias=False
+        )
+        self.resconv2 = nn.Conv1d(
+            self.hide_size // 16, self.hide_size // 8, kernel_size=1, bias=False
+        )
+        self.resconv3 = nn.Conv1d(
+            self.hide_size // 8, self.hide_size // 4, kernel_size=1, bias=False
+        )
 
     def forward(self, x):
         # x : [bs, 3, num_points]
         batch_size = x.size(0)
         if self.use_SElayer:
-            x = get_graph_feature(x, k=self.k)  # [bs, 6, num_points, k]
-            x = self.relu1(self.se1(self.bn1(self.conv1(x))))  # [bs, self.hide_size // 32, num_points, k]
-            x1 = x.max(dim=-1, keepdim=False)[0]  # [bs, self.hide_size // 32, num_points]
+            x = get_graph_feature(x, k=self.k)
+            x = self.relu1(self.se1(self.bn1(self.conv1(x))))
+            x1 = x.max(dim=-1, keepdim=False)[0]
 
             x2_res = self.resconv1(x1)
-            x = get_graph_feature(x1, k=self.k)  # [bs, self.hide_size // 16, num_points, k]
-            x = self.relu2(self.se2(self.bn2(self.conv2(x))))  # [bs, self.hide_size // 32, num_points, k]
-            x2 = x.max(dim=-1, keepdim=False)[0]  # [bs, self.hide_size // 16, num_points]
+            x = get_graph_feature(x1, k=self.k)
+            x = self.relu2(self.se2(self.bn2(self.conv2(x))))
+            x2 = x.max(dim=-1, keepdim=False)[0]
             x2 = x2 + x2_res
 
             x3_res = self.resconv2(x2)
-            x = get_graph_feature(x2, k=self.k)  # [bs, 128, num_points, k])
-            x = self.relu3(self.se3(self.bn3(self.conv3(x))))  # [bs, 128, num_points, k]
-            x3 = x.max(dim=-1, keepdim=False)[0]  # [bs, 128, num_points]
+            x = get_graph_feature(x2, k=self.k)
+            x = self.relu3(self.se3(self.bn3(self.conv3(x))))
+            x3 = x.max(dim=-1, keepdim=False)[0]
             x3 = x3 + x3_res
 
             x4_res = self.resconv3(x3)
             x = get_graph_feature(x3, k=self.k)
             x = self.relu4(self.se4(self.bn4(self.conv4(x))))
         else:
-            x = get_graph_feature(x, k=self.k)  # [bs, 6, num_points, k]
-            x = self.relu1(self.bn1(self.conv1(x)))  # [bs, 64, num_points, k]
-            x1 = x.max(dim=-1, keepdim=False)[0]  # [bs, 64, num_points]
+            x = get_graph_feature(x, k=self.k)
+            x = self.relu1(self.bn1(self.conv1(x)))
+            x1 = x.max(dim=-1, keepdim=False)[0]
 
             x2_res = self.resconv1(x1)
-            x = get_graph_feature(x1, k=self.k)  # [bs, 128, num_points, k]
-            x = self.relu2(self.bn2(self.conv2(x)))  # [bs, 64, num_points, k]
-            x2 = x.max(dim=-1, keepdim=False)[0]  # [bs, 64, num_points]
+            x = get_graph_feature(x1, k=self.k)
+            x = self.relu2(self.bn2(self.conv2(x)))
+            x2 = x.max(dim=-1, keepdim=False)[0]
             x2 = x2 + x2_res
 
             x3_res = self.resconv2(x2)
-            x = get_graph_feature(x2, k=self.k)  # [bs, 128, num_points, k])
-            x = self.relu3(self.bn3(self.conv3(x)))  # [bs, 128, num_points, k]
-            x3 = x.max(dim=-1, keepdim=False)[0]  # [bs, 128, num_points]
+            x = get_graph_feature(x2, k=self.k)
+            x = self.relu3(self.bn3(self.conv3(x)))
+            x3 = x.max(dim=-1, keepdim=False)[0]
             x3 = x3 + x3_res
 
             x4_res = self.resconv3(x3)
             x = get_graph_feature(x3, k=self.k)
             x = self.relu4(self.bn4(self.conv4(x)))
-        x4 = x.max(dim=-1, keepdim=False)[0]  # [bs, 256, num_points]
+        x4 = x.max(dim=-1, keepdim=False)[0]
         x4 = x4 + x4_res
 
-        x = torch.cat((x1, x2, x3, x4), dim=1)  # [bs, 512, num_points]
-
-        x = self.relu5(self.bn5(self.conv5(x)))  # [bs, 2048, num_points]
+        x = torch.cat((x1, x2, x3, x4), dim=1)
+        x = self.relu5(self.bn5(self.conv5(x)))
 
         x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)  # [bs, 2048]
         x2 = F.adaptive_avg_pool1d(x, 1).view(batch_size, -1)  # [bs, 2048]
@@ -222,13 +245,15 @@ class EdgeConvResFeat(nn.Module):
 class PointNetfeat(nn.Module):
     """
     input
-    - point_cloud： b x num_dims x npoints1
+    - point_cloud： b x num_dims x npoints_1
 
     output
     - feture:  b x feature_size
     """
 
-    def __init__(self, num_points=16382, global_feat=True, use_SElayer=False, hide_size=4096):
+    def __init__(
+        self, num_points=16382, global_feat=True, use_SElayer=False, hide_size=4096
+    ):
         super(PointNetfeat, self).__init__()
         self.use_SElayer = use_SElayer
         self.conv1 = torch.nn.Conv1d(3, 64, 1)
@@ -314,7 +339,6 @@ class SpareNetDecode(nn.Module):
                 ]
             )
 
-
         elif use_AdaIn == "no_use":
             self.decoder = nn.ModuleList(
                 [
@@ -332,29 +356,39 @@ class SpareNetDecode(nn.Module):
             for i in range(self.n_primitives):
                 regular_grid = torch.cuda.FloatTensor(self.grid[i])
                 regular_grid = regular_grid.transpose(0, 1).contiguous().unsqueeze(0)
-                regular_grid = regular_grid.expand(partial_x.size(0), regular_grid.size(1), regular_grid.size(2)).contiguous()
+                regular_grid = regular_grid.expand(
+                    partial_x.size(0), regular_grid.size(1), regular_grid.size(2)
+                ).contiguous()
                 regular_grid = ((regular_grid - 0.5) * 2).contiguous()
 
-                outs.append(self.decoder[i](regular_grid, style, adain_params))  # append each [batch_size, 3, 512]
+                outs.append(self.decoder[i](regular_grid, style, adain_params))
         elif self.use_AdaIn == "no_share":
             for i in range(self.n_primitives):
                 regular_grid = torch.cuda.FloatTensor(self.grid[i])
                 regular_grid = regular_grid.transpose(0, 1).contiguous().unsqueeze(0)
-                regular_grid = regular_grid.expand(partial_x.size(0), regular_grid.size(1), regular_grid.size(2)).contiguous()
+                regular_grid = regular_grid.expand(
+                    partial_x.size(0), regular_grid.size(1), regular_grid.size(2)
+                ).contiguous()
                 regular_grid = ((regular_grid - 0.5) * 2).contiguous()
 
-                outs.append(self.decoder[i](regular_grid, style))  # append each primitive [batch_size, 3, 512]
+                outs.append(self.decoder[i](regular_grid, style))
         elif self.use_AdaIn == "no_use":
             for i in range(self.n_primitives):
                 regular_grid = torch.cuda.FloatTensor(self.grid[i])
                 regular_grid = regular_grid.transpose(0, 1).contiguous().unsqueeze(0)
-                regular_grid = regular_grid.expand(partial_x.size(0), regular_grid.size(1), regular_grid.size(2)).contiguous()
+                regular_grid = regular_grid.expand(
+                    partial_x.size(0), regular_grid.size(1), regular_grid.size(2)
+                ).contiguous()
                 regular_grid = ((regular_grid - 0.5) * 2).contiguous()
 
-                y = style.unsqueeze(2).expand(style.size(0), style.size(1), regular_grid.size(2)).contiguous()  # [batch_size, 1024, 512], repeat 512 times
-                y = torch.cat((regular_grid, y), 1).contiguous()  # [batch_size, 1026, 512]
-                outs.append(self.decoder[i](y))  # append each [batch_size, 3, 512]
-        return torch.cat(outs, 2).contiguous()  # [batch_size, 3, out_points] coarse output
+                y = (
+                    style.unsqueeze(2)
+                    .expand(style.size(0), style.size(1), regular_grid.size(2))
+                    .contiguous()
+                )
+                y = torch.cat((regular_grid, y), 1).contiguous()
+                outs.append(self.decoder[i](y))
+        return torch.cat(outs, 2).contiguous()
 
 
 class StyleBasedAdaIn(nn.Module):
@@ -379,7 +413,9 @@ class StyleBasedAdaIn(nn.Module):
         self.bottleneck_size = bottleneck_size
         self.input_dim = input_dim
         self.style_dim = style_dim
-        self.dec = GridDecoder(self.input_dim, self.bottleneck_size, use_SElayer=use_SElayer)
+        self.dec = GridDecoder(
+            self.input_dim, self.bottleneck_size, use_SElayer=use_SElayer
+        )
 
     def forward(self, content, style, adain_params):
         assign_adain_params(adain_params, self.dec)
@@ -407,14 +443,14 @@ class AdaInPointGenCon(nn.Module):
         self.bottleneck_size = bottleneck_size
         self.input_dim = input_dim
         self.style_dim = style_dim
-        self.dec = GridDecoder(self.input_dim, self.bottleneck_size, use_SElayer=use_SElayer)
+        self.dec = GridDecoder(
+            self.input_dim, self.bottleneck_size, use_SElayer=use_SElayer
+        )
 
         # MLP to generate AdaIN parameters
         self.mlp = nn.Sequential(
             nn.Linear(self.style_dim, self.style_dim),
             nn.ReLU(),
-            # nn.Linear(self.style_dim * 2, self.style_dim * 2),
-            # nn.ReLU(),
             nn.Linear(self.style_dim, get_num_adain_params(self.dec)),
         )
 
@@ -445,7 +481,9 @@ class PointGenCon(nn.Module):
         super(PointGenCon, self).__init__()
         self.conv1 = torch.nn.Conv1d(self.input_dim, self.bottleneck_size, 1)
         self.conv2 = torch.nn.Conv1d(self.bottleneck_size, self.bottleneck_size // 2, 1)
-        self.conv3 = torch.nn.Conv1d(self.bottleneck_size // 2, self.bottleneck_size // 4, 1)
+        self.conv3 = torch.nn.Conv1d(
+            self.bottleneck_size // 2, self.bottleneck_size // 4, 1
+        )
         self.conv4 = torch.nn.Conv1d(self.bottleneck_size // 4, 3, 1)
 
         self.use_SElayer = use_SElayer
@@ -518,19 +556,21 @@ class SpareNetRefine(nn.Module):
             self.residual = PointNetRes(use_SElayer=use_SElayer)
 
     def forward(self, inps, partial, coarse):
-        dist, _, mean_mst_dis = self.expansion(coarse, self.num_points // self.n_primitives, 1.5)
+        dist, _, mean_mst_dis = self.expansion(
+            coarse, self.num_points // self.n_primitives, 1.5
+        )
         loss_mst = torch.mean(dist)
-        id0 = torch.zeros(inps.shape[0], 1, inps.shape[2]).cuda().contiguous()  # like a flag: 0
-        # inps = torch.cat((inps, id0), 1)  # [batch_size, 4, out_points]
+        id0 = torch.zeros(inps.shape[0], 1, inps.shape[2]).cuda().contiguous()
+
         inps = torch.cat((inps, id0), 1)  # [batch_size, 4, out_points]
-        id1 = torch.ones(partial.shape[0], 1, partial.shape[2]).cuda().contiguous()  # like a flag: 1
+        id1 = torch.ones(partial.shape[0], 1, partial.shape[2]).cuda().contiguous()
         partial = torch.cat((partial, id1), 1)  # [batch_size, 4, in_points]
         base = torch.cat((inps, partial), 2)  # [batch_size, 4, out_points+ in_points]
 
         resampled_idx = MDS_module.minimum_density_sample(
             base[:, 0:3, :].transpose(1, 2).contiguous(), coarse.shape[1], mean_mst_dis
-        )  # [batch_size, out_points]
-        base = MDS_module.gather_operation(base, resampled_idx)  # [batch_size, 4, out_points]
+        )
+        base = MDS_module.gather_operation(base, resampled_idx)
 
         delta = self.residual(base)  # [batch_size, 3, out_points]
         base = base[:, 0:3, :]  # [batch_size, 3, out_points]
@@ -576,7 +616,6 @@ class PointNetRes(nn.Module):
         self.th = nn.Tanh()
 
     def forward(self, x):
-        batchsize = x.size()[0]
         npoints = x.size()[2]
         # x: [batch_size, 4, num_points]
         if self.use_SElayer:
@@ -645,7 +684,6 @@ class EdgeRes(nn.Module):
         self.th = nn.Tanh()
 
     def forward(self, x):
-        batchsize = x.size()[0]
         npoints = x.size()[2]
         # x: [batch_size, 4, num_points]
         if self.use_SElayer:
@@ -746,11 +784,7 @@ class SELayer1D(nn.Module):
         )
 
     def forward(self, x):
-        (
-            b,
-            c,
-            _,
-        ) = x.size()
+        (b, c, _) = x.size()
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1)
         return x * y.expand_as(x)
@@ -832,13 +866,12 @@ def knn(x, k: int):
 
         ref = x.transpose(2, 1).contiguous()  # (batch_size, num_points, feature_dim)
         query = ref
-        _, idx = KNN(k=k, transpose_mode=True)(ref, query)  # (batch_size, num_points, k)
+        _, idx = KNN(k=k, transpose_mode=True)(ref, query)
 
     else:
         inner = -2 * torch.matmul(x.transpose(2, 1), x)
         xx = torch.sum(x ** 2, dim=1, keepdim=True)
         pairwise_distance = -xx - inner - xx.transpose(2, 1)
-
         idx = pairwise_distance.topk(k=k, dim=-1)[1]  # (batch_size, num_points, k)
 
     return idx
@@ -854,30 +887,22 @@ def get_graph_feature(x, k: int = 20, idx=None):
     outputs:
     - feature: b x npoints1 x (num_dims*2)
     """
+
     batch_size = x.size(0)
     num_points = x.size(2)
     x = x.view(batch_size, -1, num_points)
     if idx is None:
         idx = knn(x, k=k)  # (batch_size, num_points, k)
     device = idx.device
-
     idx_base = torch.arange(0, batch_size, device=device).view(-1, 1, 1) * num_points
-
     idx = idx + idx_base
-
     idx = idx.view(-1)
-
     _, num_dims, _ = x.size()
-
-    x = x.transpose(
-        2, 1
-    ).contiguous()  # (batch_size, num_points, num_dims)  -> (batch_size*num_points, num_dims) #   batch_size * num_points * k + range(0, batch_size*num_points)
+    x = x.transpose(2, 1).contiguous()
     feature = x.view(batch_size * num_points, -1)[idx, :]
     feature = feature.view(batch_size, num_points, k, num_dims)
     x = x.view(batch_size, num_points, 1, num_dims).repeat(1, 1, k, 1)
-
     feature = torch.cat((feature - x, x), dim=3).permute(0, 3, 1, 2).contiguous()
-
     return feature
 
 
@@ -908,15 +933,25 @@ class AdaptiveInstanceNorm1d(nn.Module):
         self.register_buffer("running_var", torch.ones(num_features))
 
     def forward(self, x):
-        assert self.weight is not None and self.bias is not None, "Please assign weight and bias before calling AdaIN!"
+        assert (
+            self.weight is not None and self.bias is not None
+        ), "Please assign weight and bias before calling AdaIN!"
         b, c = x.size(0), x.size(1)
         running_mean = self.running_mean.repeat(b)
         running_var = self.running_var.repeat(b)
 
-        # Apply instance norm
         x_reshaped = x.contiguous().view(1, b * c, *x.size()[2:])
 
-        out = F.batch_norm(x_reshaped, running_mean, running_var, self.weight, self.bias, True, self.momentum, self.eps)
+        out = F.batch_norm(
+            x_reshaped,
+            running_mean,
+            running_var,
+            self.weight,
+            self.bias,
+            True,
+            self.momentum,
+            self.eps,
+        )
 
         return out.view(b, c, *x.size()[2:])
 
@@ -947,17 +982,41 @@ class GridDecoder(nn.Module):
         self.use_sine = use_sine
         if not self.use_sine:
             self.conv1 = torch.nn.Conv1d(self.input_dim, self.bottleneck_size, 1)
-            self.conv2 = torch.nn.Conv1d(self.bottleneck_size, self.bottleneck_size // 2, 1)
-            self.conv3 = torch.nn.Conv1d(self.bottleneck_size // 2, self.bottleneck_size // 4, 1)
+            self.conv2 = torch.nn.Conv1d(
+                self.bottleneck_size, self.bottleneck_size // 2, 1
+            )
+            self.conv3 = torch.nn.Conv1d(
+                self.bottleneck_size // 2, self.bottleneck_size // 4, 1
+            )
             self.conv4 = torch.nn.Conv1d(self.bottleneck_size // 4, 3, 1)
             self.th = nn.Tanh()
         else:
             first_omega_0 = 30.0
             hidden_omega_0 = 30.0
-            self.linear1 = SineLayer(self.input_dim, self.bottleneck_size, is_first=True, omega_0=first_omega_0)
-            self.linear2 = SineLayer(self.bottleneck_size, self.bottleneck_size // 2, is_first=False, omega_0=hidden_omega_0)
-            self.linear3 = SineLayer(self.bottleneck_size // 2, self.bottleneck_size // 4, is_first=False, omega_0=hidden_omega_0)
-            self.linear4 = SineLayer(self.bottleneck_size // 4, self.bottleneck_size // 4, is_first=False, omega_0=hidden_omega_0)
+            self.linear1 = SineLayer(
+                self.input_dim,
+                self.bottleneck_size,
+                is_first=True,
+                omega_0=first_omega_0,
+            )
+            self.linear2 = SineLayer(
+                self.bottleneck_size,
+                self.bottleneck_size // 2,
+                is_first=False,
+                omega_0=hidden_omega_0,
+            )
+            self.linear3 = SineLayer(
+                self.bottleneck_size // 2,
+                self.bottleneck_size // 4,
+                is_first=False,
+                omega_0=hidden_omega_0,
+            )
+            self.linear4 = SineLayer(
+                self.bottleneck_size // 4,
+                self.bottleneck_size // 4,
+                is_first=False,
+                omega_0=hidden_omega_0,
+            )
             self.linear5 = nn.Conv1d(self.bottleneck_size // 4, 3, 1)
 
             with torch.no_grad():
@@ -970,7 +1029,9 @@ class GridDecoder(nn.Module):
         self.adain2 = AdaptiveInstanceNorm1d(self.bottleneck_size // 2)
         self.adain3 = AdaptiveInstanceNorm1d(self.bottleneck_size // 4)
 
-        self.bn1 = torch.nn.BatchNorm1d(self.bottleneck_size)  # default with Learnable Parameters
+        self.bn1 = torch.nn.BatchNorm1d(
+            self.bottleneck_size
+        )  # default with Learnable Parameters
         self.bn2 = torch.nn.BatchNorm1d(self.bottleneck_size // 2)
         self.bn3 = torch.nn.BatchNorm1d(self.bottleneck_size // 4)
 

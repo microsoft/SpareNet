@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation.   
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 import cv2
@@ -84,7 +84,8 @@ class CenterCrop(object):
 
         # Crop the image
         img = cv2.resize(
-            img[int(y_top) : int(y_bottom), int(x_left) : int(x_right)], (self.img_size_w, self.img_size_h)
+            img[int(y_top) : int(y_bottom), int(x_left) : int(x_right)],
+            (self.img_size_w, self.img_size_h),
         )
         img = img[..., np.newaxis] if len(img.shape) == 2 else img
 
@@ -107,7 +108,8 @@ class RandomCrop(object):
 
         # Crop the image
         img = cv2.resize(
-            img[int(y_top) : int(y_bottom), int(x_left) : int(x_right)], (self.img_size_w, self.img_size_h)
+            img[int(y_top) : int(y_bottom), int(x_left) : int(x_right)],
+            (self.img_size_w, self.img_size_h),
         )
         img = img[..., np.newaxis] if len(img.shape) == 2 else img
 
@@ -144,7 +146,9 @@ class RandomBackground(object):
             return img
 
         r, g, b = [
-            np.random.randint(self.random_bg_color_range[i][0], self.random_bg_color_range[i][1] + 1)
+            np.random.randint(
+                self.random_bg_color_range[i][0], self.random_bg_color_range[i][1] + 1
+            )
             for i in range(3)
         ]
         alpha = (np.expand_dims(img[:, :, 3], axis=2) == 0).astype(np.float32)
@@ -176,9 +180,9 @@ class RandomClipPoints(object):
         self.clip = parameters["clip"] if "clip" in parameters else 0.05
 
     def __call__(self, ptcloud):
-        ptcloud += np.clip(self.sigma * np.random.randn(*ptcloud.shape), -self.clip, self.clip).astype(
-            np.float32
-        )
+        ptcloud += np.clip(
+            self.sigma * np.random.randn(*ptcloud.shape), -self.clip, self.clip
+        ).astype(np.float32)
         return ptcloud
 
 
@@ -244,7 +248,9 @@ class NormalizeObjectPose(object):
         center = (bbox.min(0) + bbox.max(0)) / 2
         bbox -= center
         yaw = np.arctan2(bbox[3, 1] - bbox[0, 1], bbox[3, 0] - bbox[0, 0])
-        rotation = np.array([[np.cos(yaw), -np.sin(yaw), 0], [np.sin(yaw), np.cos(yaw), 0], [0, 0, 1]])
+        rotation = np.array(
+            [[np.cos(yaw), -np.sin(yaw), 0], [np.sin(yaw), np.cos(yaw), 0], [0, 0, 1]]
+        )
         bbox = np.dot(bbox, rotation)
         scale = bbox[3, 0] - bbox[0, 0]
         bbox /= scale

@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation.   
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 import os
@@ -27,23 +27,22 @@ class atlasnetRunner(BaseRunner):
         super().build_models()
 
     def build_train_loss(self):
-        # Set up loss functions
-        self.chamfer_dist_mean = torch.nn.DataParallel(ChamferDistanceMean().to(self.gpu_ids[0]), device_ids=self.gpu_ids)
-        self.emd_dist = torch.nn.DataParallel(emd.emdModule().to(self.gpu_ids[0]), device_ids=self.gpu_ids)
+        self.chamfer_dist_mean = torch.nn.DataParallel(
+            ChamferDistanceMean().to(self.gpu_ids[0]), device_ids=self.gpu_ids
+        )
+        self.emd_dist = torch.nn.DataParallel(
+            emd.emdModule().to(self.gpu_ids[0]), device_ids=self.gpu_ids
+        )
 
     def build_val_loss(self):
-        # Set up loss functions
         self.chamfer_dist_mean = ChamferDistanceMean().cuda()
         self.emd_dist = emd.emdModule().cuda()
 
     def train_step(self, items):
-
-        # prepare the data and label
         _, (_, _, _, data) = items
         for k, v in data.items():
             data[k] = v.float().to(self.gpu_ids[0])
 
-        # run the completion network
         _loss, _, refine_loss = self.completion(data)
         self.models.zero_grad()
         _loss.backward()
@@ -55,12 +54,9 @@ class atlasnetRunner(BaseRunner):
 
     def val_step(self, items):
         _, (_, _, _, data) = items
-
-        # prepare the data and label
         for k, v in data.items():
             data[k] = um.var_or_cuda(v)
 
-        # run the completion network
         _, refine_ptcloud, refine_loss = self.completion(data)
         self.test_losses.update([refine_loss.item() * 1000])
         self.metrics = um.Metrics.get(refine_ptcloud, data["gtcloud"])
@@ -79,21 +75,20 @@ class atlasnetRunner(BaseRunner):
             refine_ptcloud: b x npoints2 x num_dims
             refine_loss: float32
         """
-        # there is the middle pcd between coarse pcd and refined pcd
         refine_ptcloud = self.models(data)
 
-        # here we can choose the way to compute the loss
         if self.config.NETWORK.metric == "chamfer":
             refine_loss = self.chamfer_dist_mean(refine_ptcloud, data["gtcloud"]).mean()
 
         elif self.config.NETWORK.metric == "emd":
-            emd_refine, _ = self.emd_dist(refine_ptcloud, data["gtcloud"], eps=0.005, iters=50)
+            emd_refine, _ = self.emd_dist(
+                refine_ptcloud, data["gtcloud"], eps=0.005, iters=50
+            )
             refine_loss = torch.sqrt(emd_refine).mean(1).mean()
 
         else:
             raise Exception("unknown training metric")
 
-        # loss is the sum of coarse loss, meddle loss, refined loss and expansion penalty loss,(and consistent loss)
         _loss = refine_loss
 
         return _loss, refine_ptcloud, _loss

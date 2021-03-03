@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation.   
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 import os
@@ -8,8 +8,6 @@ import platform
 import numpy as np
 from easydict import EasyDict as edict
 
-# Detect the type of gpu server
-COMPUTE_MACHINE = "philly" if "container" in platform.node() else "local"
 # create dict
 __C = edict()
 cfg = __C
@@ -68,7 +66,6 @@ __C.RENDER.n_views = 8  # number or rendered views
 __C.GAN = edict()
 __C.GAN.use_im = True  # image-levle loss
 __C.GAN.use_fm = True  # discriminator feature matching loss
-__C.GAN.use_rgan = False  # relativistic discriminator
 __C.GAN.use_cgan = False  # projection discriminator
 __C.GAN.weight_im = 1  # 1
 __C.GAN.weight_fm = 1  # 1
@@ -95,31 +92,26 @@ __C.TEST.metric_name = "EMD"  # 'EMD' or 'ChamferDistance'
 
 # Dataset Config
 __C.DATASETS = edict()
-__C.DATASETS.completion3d = edict()
-__C.DATASETS.completion3d.category_file_path = "./datasets/data/Completion3D.json"
-if COMPUTE_MACHINE == "philly":
-    __C.DATASETS.completion3d.partial_points_path = "/mnt/blob/pointcloud.pytorch/data/shapenet/%s/partial/%s/%s.h5"
-    __C.DATASETS.completion3d.complete_points_path = "/mnt/blob/pointcloud.pytorch/data/shapenet/%s/gt/%s/%s.h5"
-else:
-    __C.DATASETS.completion3d.partial_points_path = "/home/v-chulx/code1/completion3d/data/shapenet/%s/partial/%s/%s.h5"
-    __C.DATASETS.completion3d.complete_points_path = "/home/v-chulx/code1/completion3d/data/shapenet/%s/gt/%s/%s.h5"
 __C.DATASETS.shapenet = edict()
-__C.DATASETS.shapenet.category_file_path = "./datasets/data/ShapeNet.json"
 __C.DATASETS.shapenet.n_renderings = 8
 __C.DATASETS.shapenet.n_points = 16384
-__C.DATASETS.shapenet.version = "GRnet"  # 'GRnet' or 'ShapeNet' version dataset
-if COMPUTE_MACHINE == "philly":
-    __C.DATASETS.shapenet.partial_points_path = "/mnt/blob/ShapeNetCompletion/%s/partial/%s/%s/%02d.pcd"
-    __C.DATASETS.shapenet.complete_points_path = "/mnt/blob/ShapeNetCompletion/%s/complete/%s/%s.pcd"
-else:
-    __C.DATASETS.shapenet.partial_points_path = "/home/v-chulx/code1/Datasets/ShapeNetCompletion/%s/partial/%s/%s/%02d.pcd"
-    __C.DATASETS.shapenet.complete_points_path = "/home/v-chulx/code1/Datasets/ShapeNetCompletion/%s/complete/%s/%s.pcd"
+# 'GRnet' or 'ShapeNet' version dataset
+__C.DATASETS.shapenet.version = "GRnet"
+__C.DATASETS.shapenet.category_file_path = "./datasets/data/ShapeNet.json"
+__C.DATASETS.shapenet.partial_points_path = "/path/to/datasets/ShapeNetCompletion/%s/partial/%s/%s/%02d.pcd"
+__C.DATASETS.shapenet.complete_points_path = "/path/to/datasets/ShapeNetCompletion/%s/complete/%s/%s.pcd"
+__C.DATASETS.completion3d = edict()
+__C.DATASETS.completion3d.category_file_path = "/path/to/datasets/data/Completion3D.json"
+__C.DATASETS.completion3d.partial_points_path = "/path/to/datasets/completion3d/data/shapenet/%s/partial/%s/%s.h5"
+__C.DATASETS.completion3d.complete_points_path = "/path/to/datasets/completion3d/data/shapenet/%s/gt/%s/%s.h5"
 __C.DATASETS.kitti = edict()
-__C.DATASETS.kitti.category_file_path = "./datasets/data/KITTI.json"
-__C.DATASETS.kitti.partial_points_path = "/home/haya/LocalBlob/others/v-chuxwa/KITTI/cars/%s.pcd"
-__C.DATASETS.kitti.bounding_box_file_path = "/home/haya/LocalBlob/others/v-chuxwa/KITTI/bboxes/%s.txt"
+__C.DATASETS.kitti.category_file_path = "/path/to/datasets/data/KITTI.json"
+__C.DATASETS.kitti.partial_points_path = "/path/to/datasets/KITTI/cars/%s.pcd"
+__C.DATASETS.kitti.bounding_box_file_path = "/path/to/datasets/KITTI/bboxes/%s.txt"
 
 # Merge config dictionary
+
+
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the options in b whenever they are also specified in a."""
     if type(a) is not edict:
@@ -136,7 +128,11 @@ def _merge_a_into_b(a, b):
             if isinstance(b[k], np.ndarray):
                 v = np.array(v, dtype=b[k].dtype)
             else:
-                raise ValueError(("Type mismatch ({} vs. {}) " "for config key: {}").format(type(b[k]), type(v), k))
+                raise ValueError(
+                    ("Type mismatch ({} vs. {}) " "for config key: {}").format(
+                        type(b[k]), type(v), k
+                    )
+                )
 
         # recursively merge dicts
         if type(v) is edict:
@@ -159,20 +155,18 @@ def cfg_from_file(filename):
 
 
 def cfg_update(args):
-    """
-    Overwrite the hyperparameters in cfg
-    """
-
+    """Overwrite the hyperparameters in cfg."""
     # the path of model
     if args.weights is not None:
         cfg.CONST.weights = args.weights
     cfg.CONST.device = args.gpu_id
     if args.workdir is not None:
         cfg.DIR.out_path = args.workdir
-    
 
     # set up folders for logs and checkpoints
-    output_dir = os.path.join(cfg.DIR.out_path, "%s", datetime.datetime.now().isoformat())
+    output_dir = os.path.join(
+        cfg.DIR.out_path, "%s", datetime.datetime.now().isoformat()
+    )
     cfg.DIR.checkpoints = output_dir % "checkpoints"
     cfg.DIR.logs = output_dir % "logs"
     return output_dir
