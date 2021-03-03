@@ -49,7 +49,7 @@ def main():
     if not os.path.exists(cfg.DIR.logs):
         os.makedirs(cfg.DIR.logs)
     logger = set_logger(os.path.join(cfg.DIR.logs, "log.txt"))
-    logger.info("save into dir: %s" % output_dir)
+    logger.info("save into dir: %s" % cfg.DIR.logs)
 
     # Set GPU to use
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"

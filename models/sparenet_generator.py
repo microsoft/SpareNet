@@ -76,7 +76,8 @@ class SpareNetGenerator(nn.Module):
         middle, loss_mst = self.refine(outs, partial, coarse)
 
         # refine second time
-        refine, _ = self.refine(outs, partial, coarse)
+        outs_2 = middle.transpose(1, 2).contiguous()
+        refine, _ = self.refine(outs_2, partial, middle)
 
         return coarse, middle, refine, loss_mst
 
@@ -949,6 +950,7 @@ class GridDecoder(nn.Module):
             self.conv2 = torch.nn.Conv1d(self.bottleneck_size, self.bottleneck_size // 2, 1)
             self.conv3 = torch.nn.Conv1d(self.bottleneck_size // 2, self.bottleneck_size // 4, 1)
             self.conv4 = torch.nn.Conv1d(self.bottleneck_size // 4, 3, 1)
+            self.th = nn.Tanh()
         else:
             first_omega_0 = 30.0
             hidden_omega_0 = 30.0
@@ -995,7 +997,7 @@ class GridDecoder(nn.Module):
                 x = F.relu(self.bn1(self.adain1(self.conv1(x))))
                 x = F.relu(self.bn2(self.adain2(self.conv2(x))))
                 x = F.relu(self.bn3(self.adain3(self.conv3(x))))
-            x = self.conv4(x)
+            x = self.th(self.conv4(x))
         return x
 
 
