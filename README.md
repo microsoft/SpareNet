@@ -7,9 +7,9 @@ An efficient PyTorch library for Point Cloud Completion.
 <img src="./teaser.png" width = "800"   align=center />
 </div>
 
-### [Project page](https://alphapav.github.io/SpareNet/) |   [Paper]() | [Video]()
+### [Project page](https://alphapav.github.io/SpareNet/) |   [Paper](https://arxiv.org/abs/2103.02535) | [Video]()
 
-[Chulin Xie*](https://github.com/AlphaPav), [Chuxin Wang*](https://github.com/XinYuan-believe), [Bo Zhang](https://www.microsoft.com/en-us/research/people/zhanbo/), [Hao Yang](https://www.microsoft.com/en-us/research/people/haya/), [Dong Chen](https://www.microsoft.com/en-us/research/people/doch/), and [Fang Wen](https://www.microsoft.com/en-us/research/people/fangwen/).
+[Chulin Xie*](https://github.com/AlphaPav), [Chuxin Wang*](https://github.com/XinYuan-believe), [Bo Zhang](https://www.microsoft.com/en-us/research/people/zhanbo/), [Hao Yang](https://www.microsoft.com/en-us/research/people/haya/), [Dong Chen](https://www.microsoft.com/en-us/research/people/doch/), and [Fang Wen](https://www.microsoft.com/en-us/research/people/fangwen/). (\*Equal contribution)
 
 ## Abstract
 >We proposed a novel Style-based Point Generator with Adversarial Rendering (SpareNet) for point cloud completion. Firstly, we present the channel-attentive EdgeConv to fully exploit the local structures as well as the global shape in point features. Secondly, we observe that the concatenation manner used by vanilla foldings limits its potential of generating a complex and faithful shape. Enlightened by the success of StyleGAN, we regard the shape feature as style code that modulates the normalization layers during the folding, which considerably enhances its capability. Thirdly, we realize that existing point supervisions, e.g., Chamfer Distance or Earth Mover’s Distance, cannot faithfully reﬂect the perceptual quality of the reconstructed points. To address this, we propose to project the completed points to depth maps with a differentiable renderer and apply adversarial training to advocate the perceptual realism under different viewpoints. Comprehensive experiments on ShapeNet and KITTI prove the effectiveness of our method, which achieves state-of-the-art quantitative performance while offering superior visual quality.
@@ -135,11 +135,11 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 If you like our work and use the codebase or models for your research, please cite our work as follows.
 
 ```bibtex
-@misc{xx,
-  title =        {xxx},
-  author =       {xx},
-  howpublished = {xx},
-  year =         {2021}
+@inproceedings{xie2021stylebased,
+      title={Style-based Point Generator with Adversarial Rendering for Point Cloud Completion}, 
+      author={Chulin Xie and Chuxin Wang and Bo Zhang and Hao Yang and Dong Chen and Fang Wen},
+      booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+      year={2021},
 }
 ``` 
 
