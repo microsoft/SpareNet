@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation.   
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 import os
@@ -17,22 +17,28 @@ def get_args_from_command_line():
     """
     config the parameter
     """
-    parser = argparse.ArgumentParser(description="The argument parser of R2Net runner")
+    parser = argparse.ArgumentParser(
+        description="The argument parser of R2Net runner")
 
     # choose model
-    parser.add_argument("--model", type=str, default="sparenet", help="sparenet, atlasnet, msn, grnet")
+    parser.add_argument("--model", type=str, default="sparenet",
+                        help="sparenet, atlasnet, msn, grnet")
 
     # choose train mode
-    parser.add_argument("--gan", dest="gan", help="use gan", action="store_true", default=False)
+    parser.add_argument("--gan", dest="gan", help="use gan",
+                        action="store_true", default=False)
 
     # choose load model
-    parser.add_argument("--weights", dest="weights", help="Initialize network from the weights file", default=None)
+    parser.add_argument("--weights", dest="weights",
+                        help="Initialize network from the weights file", default=None)
 
     # setup gpu
-    parser.add_argument("--gpu", dest="gpu_id", help="GPU device to use", default="0", type=str)
+    parser.add_argument("--gpu", dest="gpu_id",
+                        help="GPU device to use", default="0", type=str)
 
     # setup workdir
-    parser.add_argument("--workdir", dest="workdir", help="where to save files", default=None)
+    parser.add_argument("--workdir", dest="workdir",
+                        help="where to save files", default=None)
     return parser.parse_args()
 
 
@@ -57,14 +63,14 @@ def main():
 
     # Start train/inference process
     if args.gan:
-        runners = __import__("runners."+ args.model + "_gan_runner")
+        runners = __import__("runners." + args.model + "_gan_runner")
         module = getattr(runners, args.model + "_gan_runner")
-        model = getattr(module, args.model + "GANRunner")(cfg,logger)
+        model = getattr(module, args.model + "GANRunner")(cfg, logger)
 
     else:
-        runners = __import__("runners."+ args.model + "_runner")
+        runners = __import__("runners." + args.model + "_runner")
         module = getattr(runners, args.model + "_runner")
-        model = getattr(module, args.model + "Runner")(cfg,logger)
+        model = getattr(module, args.model + "Runner")(cfg, logger)
 
     model.runner()
 
