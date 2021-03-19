@@ -119,8 +119,15 @@ A fully differentiable point renderer that enables end-to-end rendering from 3D 
 The inputs of renderer are pcd, views and radius, and the outputs of renderer are depth_maps.
 -  example
    ```shell
+   # `projection_mode`: a str with value "perspective" or "orthorgonal"
+   # `eyepos_scale`: a float that defines the distance of eyes to (0, 0, 0)
+   # `image_size`: an int defining the output image size
    renderer = ComputeDepthMaps(projection_mode, eyepos_scale, image_size)
-   renderer(data, view_id, radius_list)
+
+   # `data`: a tensor with shape [batch_size, num_points, 3]
+   # `view_id`: the index of selected view satisfying 0 <= view_id < 8
+   # `radius_list`: a list of floats, defining the kernel radius to render each point
+   depthmaps = renderer(data, view_id, radius_list)
    ```
 
 ## License
