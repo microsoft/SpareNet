@@ -37,10 +37,10 @@ def set_logger(filename):
 parser = argparse.ArgumentParser()
 parser.add_argument('--plot_freq', type=int, default=1)
 parser.add_argument('--save_pcd', action='store_true',default=False)
-parser.add_argument('--log_dir', default='/path/to/save/logs')
-parser.add_argument('--list_path', default='/path/to/test.list')
-parser.add_argument('--data_dir', default='/path/to/test/dataset')
-parser.add_argument('--fake_dir', default='/path/to/methods/pcds',
+parser.add_argument('--log_dir', default='/home/v-chuxwa/SpareNet/output/logs')
+parser.add_argument('--list_path', default='/home/v-chulx/code1/pcn/data/trained_models/test.list')
+parser.add_argument('--data_dir', default='/home/v-chulx/code1/Datasets/ShapeNetCompletion/test')
+parser.add_argument('--fake_dir', default='/home/v-chulx/code1/pcn/results/shapenet_pcn_cd/pcds/',
                             help='/path/to/results/shapenet_fc/pcds/')
 parser.add_argument('--num_points', type=int, default=16384, help='number of points: 2048 or 8192')
 
