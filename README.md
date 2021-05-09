@@ -114,6 +114,17 @@ A fully differentiable point renderer that enables end-to-end rendering from 3D 
 <img src="./renderer.png" width = "600"   align=center />
 </div>
 
+### Test FPD on ShapeNet Dataset
+* Run your model and save your results of test dataset
+
+* Update the file path of the results in `test_fpd.py`:
+   ```
+   parser.add_argument('--log_dir', default='/path/to/save/logs')
+   parser.add_argument('--data_dir', default='/path/to/test/dataset/pcds')
+   parser.add_argument('--fake_dir', default='/path/to/methods/pcds',
+                              help='/path/to/results/shapenet_fc/pcds/')
+   ```
+
 ### Usage of Renderer
 
 The inputs of renderer are pcd, views and radius, and the outputs of renderer are depth_maps.
