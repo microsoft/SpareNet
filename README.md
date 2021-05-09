@@ -117,7 +117,7 @@ A fully differentiable point renderer that enables end-to-end rendering from 3D 
 ### Test FPD on ShapeNet Dataset
 * Run your model and save your results of test dataset
 
-* Update the file path of the results in `test_fpd.py`:
+* Update the file path of the results in `test_fpd.py` and run it:
    ```
    parser.add_argument('--log_dir', default='/path/to/save/logs')
    parser.add_argument('--data_dir', default='/path/to/test/dataset/pcds')
