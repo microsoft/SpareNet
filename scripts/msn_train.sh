@@ -1,5 +1,5 @@
 #!/bin/bash
-python --gpu ${GPUS}\
+python train.py --gpu ${GPUS}\
        --work_dir ${WORK_DIR} \
-       --model ${network} \
+       --model msn \
        --weights ${path to checkpoint}

@@ -1,6 +1,6 @@
 #!/bin/bash
-python --gpu ${GPUS}\
+python test.py --gpu ${GPUS}\
        --work_dir ${WORK_DIR} \
-       --model ${network} \
+       --model atlasnet \
        --weights ${path to checkpoint} \
        --test_mode ${mode}

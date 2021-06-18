@@ -75,7 +75,7 @@ The pretrained models:
 -  run
 
    ```shell
-   python   --gpu ${GPUS}\
+   python test.py --gpu ${GPUS}\
             --work_dir ${WORK_DIR} \
             --model ${network} \
             --weights ${path to checkpoint} \
@@ -94,7 +94,7 @@ All log files in the training process, such as log message, checkpoints, etc, wi
 -  run
 
    ```shell
-   python   --gpu ${GPUS}\
+   python train.py  --gpu ${GPUS}\
             --work_dir ${WORK_DIR} \
             --model ${network} \
             --weights ${path to checkpoint}

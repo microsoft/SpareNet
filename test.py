@@ -16,7 +16,7 @@ def get_args_from_command_line():
     parser.add_argument("--model", type=str, default="sparenet", help="sparenet, atlasnet, msn, grnet")
 
     # choose test mode
-    parser.add_argument("--test_mode", default="default", help="default vis render kitti", type=str)
+    parser.add_argument("--test_mode", default="default", help="default, vis, render, kitti", type=str)
 
     # choose load model
     parser.add_argument("--weights", dest="weights", help="Initialize network from the weights file", default=None)
