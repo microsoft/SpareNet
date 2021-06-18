@@ -32,7 +32,8 @@ def gpu_init(cfg):
         os.makedirs(cfg.DIR.checkpoints)
     # GPU setup
     torch.backends.cudnn.benchmark = True
-    return [int(x) for x in cfg.CONST.device.split(",")]
+    gup_ids = [int(x) for x in cfg.CONST.device.split(",")]
+    return list(range(len(gup_ids)))
 
 
 def writer_init(cfg):
