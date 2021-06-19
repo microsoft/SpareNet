@@ -155,11 +155,13 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 If you like our work and use the codebase or models for your research, please cite our work as follows.
 
 ```bibtex
-@inproceedings{xie2021stylebased,
-      title={Style-based Point Generator with Adversarial Rendering for Point Cloud Completion}, 
-      author={Chulin Xie and Chuxin Wang and Bo Zhang and Hao Yang and Dong Chen and Fang Wen},
-      booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
-      year={2021},
+@InProceedings{Xie_2021_CVPR,
+    author    = {Xie, Chulin and Wang, Chuxin and Zhang, Bo and Yang, Hao and Chen, Dong and Wen, Fang},
+    title     = {Style-Based Point Generator With Adversarial Rendering for Point Cloud Completion},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2021},
+    pages     = {4619-4628}
 }
 ``` 
 
