@@ -52,7 +52,7 @@ class sparenetRunner(BaseRunner):
         self.loss["coarse_loss"] = coarse_loss * 1000
         self.loss["refine_loss"] = refine_loss * 1000
         self.loss["rec_loss"] = _loss
-        self.losses.update([coarse_loss * 1000, refine_loss * 1000])
+        self.losses.update([coarse_loss.item() * 1000, refine_loss.item() * 1000])
 
     def val_step(self, items):
         _, (_, _, _, data) = items

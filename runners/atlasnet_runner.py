@@ -50,7 +50,7 @@ class atlasnetRunner(BaseRunner):
 
         self.loss["refine_loss"] = refine_loss * 1000
         self.loss["rec_loss"] = _loss
-        self.losses.update([refine_loss * 1000])
+        self.losses.update([refine_loss.item() * 1000])
 
     def val_step(self, items):
         _, (_, _, _, data) = items
