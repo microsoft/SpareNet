@@ -84,7 +84,7 @@ The pretrained models:
 
 -  example
    ```shell
-   python  test.py --gpu 0 --work_dir /path/to/logfiles --model sparenet --weights /path/to/cheakpoint --test_mode default
+   python  test.py --gpu 0 --work_dir /path/to/logfiles --model sparenet --weights /path/to/checkpoint --test_mode default
    ```
 
 ### Train
@@ -101,7 +101,7 @@ All log files in the training process, such as log message, checkpoints, etc, wi
    ```
 -  example
    ```shell
-   python  train.py --gpu 0,1,2,3 --work_dir /path/to/logfiles --model sparenet --weights /path/to/cheakpoint
+   python  train.py --gpu 0,1,2,3 --work_dir /path/to/logfiles --model sparenet --weights /path/to/checkpoint
    ```
 
 
