@@ -76,7 +76,7 @@ The pretrained models:
 
    ```shell
    python test.py --gpu ${GPUS}\
-            --work_dir ${WORK_DIR} \
+            --workdir ${WORK_DIR} \
             --model ${network} \
             --weights ${path to checkpoint} \
             --test_mode ${mode}
@@ -84,7 +84,7 @@ The pretrained models:
 
 -  example
    ```shell
-   python  test.py --gpu 0 --work_dir /path/to/logfiles --model sparenet --weights /path/to/checkpoint --test_mode default
+   python  test.py --gpu 0 --workdir /path/to/logfiles --model sparenet --weights /path/to/checkpoint --test_mode default
    ```
 
 ### Train
@@ -95,13 +95,13 @@ All log files in the training process, such as log message, checkpoints, etc, wi
 
    ```shell
    python train.py  --gpu ${GPUS}\
-            --work_dir ${WORK_DIR} \
+            --workdir ${WORK_DIR} \
             --model ${network} \
             --weights ${path to checkpoint}
    ```
 -  example
    ```shell
-   python  train.py --gpu 0,1,2,3 --work_dir /path/to/logfiles --model sparenet --weights /path/to/checkpoint
+   python  train.py --gpu 0,1,2,3 --workdir /path/to/logfiles --model sparenet --weights /path/to/checkpoint
    ```
 
 
